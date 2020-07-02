@@ -1,0 +1,26 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+        "file": {
+            "type": "string",
+            "description": "The location of the GatewayScript file on the appliance."
+        },
+        "parameters": {
+            "type": "array",
+            "description": "Parameters which are passed into the GatewayScript file.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The parameter name."
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "The parameter value."
+                    }
+                }
+            }
+        }
+    }
+}

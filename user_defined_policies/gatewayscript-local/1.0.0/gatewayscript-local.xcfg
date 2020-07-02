@@ -1,0 +1,51 @@
+<datapower-configuration version="3" xmlns:env="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:dp="http://www.datapower.com/schemas/management">
+    <configuration domain="all">
+		<APISchema name="gatewayscript-local.file.schema">
+            <mAdminState>enabled</mAdminState>
+            <JSONSchema>local:///ondisk/framework/policies/gatewayscript-local/1.0.0/gatewayscript-local.schema.json#/definitions/file</JSONSchema>
+            <XMLType>xml</XMLType>
+            <XMLValidationMode>xsd</XMLValidationMode>
+        </APISchema>
+        <APISchema name="gatewayscript-local.parameters.schema">
+            <mAdminState>enabled</mAdminState>
+            <JSONSchema>local:///ondisk/framework/policies/gatewayscript-local/1.0.0/gatewayscript-local.schema.json#/definitions/parameters</JSONSchema>
+            <XMLType>xml</XMLType>
+            <XMLValidationMode>xsd</XMLValidationMode>
+        </APISchema>
+		<AssemblyActionGatewayScript name="gatewayscript-local-call-js">
+            <mAdminState>enabled</mAdminState>
+            <ActionDebug persisted="false">off</ActionDebug>
+            <Source>$(local.parameter.file)</Source>
+        </AssemblyActionGatewayScript>
+        <APIRule name="gatewayscript-local-rule">
+            <mAdminState>enabled</mAdminState>
+            <Actions class="AssemblyActionXSLT">gatewayscript-local-call-js</Actions>
+        </APIRule>
+        <Assembly name="gatewayscript-local">
+            <mAdminState>enabled</mAdminState>
+            <Rule class="APIRule">gatewayscript-local-rule</Rule>
+        </Assembly>
+        <AssemblyFunction name="gatewayscript-local">
+            <mAdminState>enabled</mAdminState>
+            <Title>gatewayscript-local</Title>
+            <Description>Use the gatewayscript-local policy to execute a specified DataPower
+                GatewayScript file which is hosted on the appliance.</Description>
+            <Parameter>
+                <Name>file</Name>
+                <Label>file</Label>
+                <Description>The location of the GatewayScript file on the appliance.</Description>
+                <Schema class="APISchema">gatewayscript-local.file.schema</Schema>
+                <ValueType>string</ValueType>
+            </Parameter>
+            <Parameter>
+                <Name>parameters</Name>
+                <Label>parameters</Label>
+                <Description>Parameters which are passed to the Stylesheet</Description>
+                <Schema class="APISchema">gatewayscript-local.parameters.schema</Schema>
+                <ValueType>string</ValueType>
+            </Parameter>
+            <Assembly class="Assembly">gatewayscript-local</Assembly>
+        </AssemblyFunction>
+    </configuration>
+</datapower-configuration>
