@@ -58,7 +58,7 @@ LINE_LIMIT=50
 DOMAIN="default"
 FILE="default-log"
 
-REQUIRED_CMDS=(curl xmllint base64 awk sed grep)
+REQUIRED_CMDS=(curl base64 awk sed grep)
 
 for CMD in "${REQUIRED_CMDS[@]}"; do
     if ! command -v "$CMD" >/dev/null 2>&1; then
@@ -150,7 +150,7 @@ echo "  Username     : $USERNAME"
 echo "  Log File     : logtemp:/$FILE"
 #echo "  Request XML  : $REQ_XML"
 #echo "  Response XML : $RES_XML"
-echo 
+echo
 
 # build the soma request xml
 cat <<EOF >$REQ_XML
@@ -180,13 +180,13 @@ fetch_log() {
         exit 1
     elif [[ "$HTTP_STATUS" -ne 200 ]]; then
         echo "Error: Could not retrieve log file (http status: $RC)" >&2
-        xmllint --format "$RES_XML" >&2
+        cat "$RES_XML" >&2
         exit 1
     else
         # check for soap fault
         if grep -q "<faultcode>" "$RES_XML"; then
             echo "Error: Datapower returned soap fault" >&2
-            xmllint --format "$RES_XML" | grep -A3 "<faultcode>" >&2
+            cat "$RES_XML" >&2
         elif grep -q ">Authentication failure<" "$RES_XML"; then
             echo "Error: Datapower returned authentication failure. Check username and password, and that the domain exists" >&2
             exit 1
@@ -195,7 +195,10 @@ fetch_log() {
             exit 1
         else
             # extract and decode log content
-            xmllint --xpath "string(//*[local-name()='file']/text())" "$RES_XML" | base64 -d
+            #xmllint --xpath "string(//*[local-name()='file']/text())" "$RES_XML" | base64 -d
+
+            # preference this dirty sed over the additional xmllint dependency
+            sed -n 's/.*>\(.*\)<\/dp:file>.*/\1/p' "$RES_XML" | base64 -d
         fi
     fi
 }
