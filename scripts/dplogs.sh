@@ -15,13 +15,13 @@ usage() {
     echo
     echo "Required:"
     echo "  <host>                  Datapower hostname to query"
-    echo "  --user <username<>      HTTP basic auth username"
+    echo "  --user <username>      HTTP basic auth username"
     echo
     echo "Options:"
     echo "  -f                      Follow mode (like tail -f)"
     echo "  -p <pattern>            Regex pattern to filter on"
     echo "  --lines <N>             Show only last N lines"
-    echo "  --file <path>           File to fetch from logtemp:/ dir (default: defaultlog)"
+    echo "  --file <path>           File to fetch (default: logtemp:/default-log)"
     echo "  --domain <name>         Datapower domain to query (default: default)"
     echo "  -u, --user <username>   HTTP basic auth username"
     echo "  --password <password>   HTTP basic auth password (will prompt if not set)"
@@ -47,7 +47,7 @@ usage() {
     echo "      Show GatewayScript runtime errors and exception traces"
 }
 
-SLEEP_INTERVAL=1
+SLEEP_INTERVAL=0.5
 
 HOST=""
 USERNAME=""
@@ -142,12 +142,16 @@ cleanup() {
 # always cleanup, regardless of how we exit
 trap cleanup EXIT INT TERM
 
+if [[ ! "$FILE" == *":/"* ]]; then
+    FILE="logtemp:/$FILE"
+fi
+
 echo "Running dplogs.sh with args:"
 echo "  Host         : $HOST"
 echo "  Domain       : $DOMAIN"
 echo "  Username     : $USERNAME"
 #echo "  Password     : $PASSWORD"
-echo "  Log File     : logtemp:/$FILE"
+echo "  Log File     : $FILE"
 #echo "  Request XML  : $REQ_XML"
 #echo "  Response XML : $RES_XML"
 echo
@@ -157,7 +161,7 @@ cat <<EOF >$REQ_XML
 <env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
     <env:Body>
         <man:request domain="${DOMAIN}" xmlns:man="http://www.datapower.com/schemas/management">
-            <man:get-file name="logtemp:/${FILE}"/>
+            <man:get-file name="${FILE}"/>
         </man:request>
     </env:Body>
 </env:Envelope>
@@ -191,7 +195,7 @@ fetch_log() {
             echo "Error: Datapower returned authentication failure. Check username and password, and that the domain exists" >&2
             exit 1
         elif grep -q ">Cannot read the specified file<" "$RES_XML"; then
-            echo "Error: Datapower could not find the specified file: logtemp:/$FILE" >&2
+            echo "Error: Datapower could not find the specified file: $FILE" >&2
             exit 1
         else
             # extract and decode log content
@@ -223,7 +227,11 @@ limit_lines() {
 # filter the output based on pattern
 apply_pattern() {
     # exclude error codes that may spam the logs due to soma calls
-    local EXCLUDE='xml-mgmt|xmlmgmt|xmlmgr|0x80c00004|0x8060022f|0x82400029|0x81000033|0x81000019|0x81000736|0x8120002f|0x8060015e'
+    if [[ ! "$FILE" == *"audit"* ]]; then
+        local EXCLUDE='xml-mgmt|xmlmgmt|xmlmgr|0x80c00004|0x8060022f|0x82400029|0x81000033|0x81000019|0x81000736|0x8120002f|0x8060015e'
+    else
+        local EXCLUDE='xml-mgmt|xmlmgmt|xmlmgr'
+    fi
 
     awk -v pat="$PATTERN" -v exclude="$EXCLUDE" -v colour="\x1b[34m" -v reset="\x1b[0m" '
         BEGIN { n = 0; matched = 0 }
